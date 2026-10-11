@@ -8,9 +8,10 @@
     [top.kzre.krro.plugin.painting.core.brush.global :as global]))
 
 (defn- factory [init-props]
-  {:render
-   (fn [_props frame]
-     (let [bind-ctx (bind/create global/global-brush)]
+  (let [bind-ctx (bind/create global/global-brush)]
+    {
+     :render
+     (fn [_props frame]
        [:block {:direction :vertical
                 :alignment :top-center}
         [:krro.painting/color-wheel
@@ -24,7 +25,7 @@
           :bind-ctx bind-ctx
           :krro.painting/on-color-selected
           (fn [c]
-            (brush/set-global-brush-color! c))}]]))})
+            (brush/set-global-brush-color! c))}]])}))
 
 (defn mount []
   (krro.ui/reg-component :krro.painting/color-picker-wheel-hsv factory)

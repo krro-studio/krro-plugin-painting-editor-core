@@ -21,7 +21,6 @@
   {:name :krro.plugin/painting
    :mount
    (fn []
-     (plugin/reg-plugin! pc/canvas-codec-plugin-def)
      (mode/mount)
      (basic/mount)
      (new-image/mount)
