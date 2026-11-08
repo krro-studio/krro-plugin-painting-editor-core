@@ -1,9 +1,8 @@
 (ns top.kzre.krro.plugin.painting.editor.core.overlay
   (:require
    [taoensso.timbre :as log]
-   [taoensso.tufte :refer [p profile]]
    [top.kzre.krro.core.frame :as frame]
-   [top.kzre.krro.core.reframe :as rf]
+   [top.kzre.krro.core.reframe.core :as rf]
    [top.kzre.krro.plugin.painting.core.store :as store]
    [top.kzre.krro.plugin.painting.editor.core.graph :as graph]))
 
@@ -16,20 +15,16 @@
   (log/warn "Unknown overlay type:" (first desc)))
 
 
-
 (rf/reg-fx
   store/app-id :tool/flush-overlay
   (fn [_ overlay-v frame]
-    (profile
-      {:id :krro.painting.tool/flush-overlay}
-      (p :flush-overlay
-         (when-let [gc (frame/param frame :krro.painting/overlay-graph-context)]
-           (when overlay-v
-             (graph/submit! gc
-                            (fn []
-                              (graph/clear! gc)
-                              (doseq [overlay overlay-v]
-                                (draw-overlay! overlay gc))))))))))
+    (when-let [gc (frame/param frame :krro.painting/overlay-graph-context)]
+      (when overlay-v
+        (graph/submit! gc
+                       (fn []
+                         (graph/clear! gc)
+                         (doseq [overlay overlay-v]
+                           (draw-overlay! overlay gc))))))))
 
 
 (defmethod draw-overlay! :cursor

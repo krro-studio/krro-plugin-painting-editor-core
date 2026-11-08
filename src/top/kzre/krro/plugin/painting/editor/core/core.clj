@@ -18,7 +18,7 @@
 
 
 (krro/reg-plugin!
-  {:name :krro.plugin/painting
+  {:name :krro.painting/editor-core
    :mount
    (fn []
      (mode/mount)

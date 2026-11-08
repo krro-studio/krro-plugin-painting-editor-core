@@ -1,10 +1,12 @@
 .PHONY: clean jar install
 
+all: jar install
+
 clean:
-	clojure -T:build clean
+	clj -T:build clean
 
 jar:
-	clojure -T:build jar
+	clj -T:build jar
 
-install: jar
-	mvn install:install-file -Dfile=target/krro-plugin-painting-editor-core-0.1.0.jar -DpomFile=pom.xml
+install:
+	clj -T:build install

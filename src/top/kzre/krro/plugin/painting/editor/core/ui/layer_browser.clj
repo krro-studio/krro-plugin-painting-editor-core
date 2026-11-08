@@ -3,13 +3,11 @@
    所有样式值均为字符串，符合 spec.element 规范。"
   (:require
     [top.kzre.krro.canvas.core.layer.core :as layer-core]
-    [top.kzre.krro.plugin.painting.core.ops.layer :as layer]
     [top.kzre.krro.plugin.painting.core.ops.layer-undo :as layer-undo]
-    [top.kzre.krro.plugin.painting.core.state :as state]
     [top.kzre.krro.plugin.painting.core.project.canvas :as pc]
     [top.kzre.krro.plugin.painting.core.project.layer-meta :as pm]
-    [top.kzre.krro.ui.core.spec.drag :as drag-spec]
-    [top.kzre.krro.core.core :as krro]))
+    [top.kzre.krro.plugin.painting.core.state :as state]
+    [top.kzre.krro.ui.core.spec.drag :as drag-spec]))
 
 ;; ── 内部工具：递归展平图层 ──────────────────────────
 (defn- flatten-layers

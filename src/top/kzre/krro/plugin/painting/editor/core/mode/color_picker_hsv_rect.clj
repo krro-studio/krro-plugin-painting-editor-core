@@ -1,6 +1,6 @@
 (ns top.kzre.krro.plugin.painting.editor.core.mode.color-picker-hsv-rect
   "颜色选择器模式：色相条 + SV 矩形。"
-  (:require [top.kzre.krro.core.core :as core]))
+  (:require [top.kzre.krro.core.core :as krro]))
 
 (defn- layout-fn [frame]
   [:block {:direction :vertical
@@ -13,7 +13,7 @@
    ])
 
 (defn mount []
-  (core/define-major-mode
+  (krro/define-major-mode
     :krro.painting/color-picker-hsv-rect
     :name "颜色选择器（H+SV）"
     :layout layout-fn
