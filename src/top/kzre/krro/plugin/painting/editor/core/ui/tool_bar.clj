@@ -1,6 +1,6 @@
 (ns top.kzre.krro.plugin.painting.editor.core.ui.tool-bar
   (:require
-   [top.kzre.krro.core.reframe :as rf]
+   [top.kzre.krro.core.reframe.core :as rf]
    [top.kzre.krro.plugin.painting.core.edit.tools :as tools]
    [top.kzre.krro.plugin.painting.core.state :as state]
    [top.kzre.krro.plugin.painting.core.store :as store]))
@@ -15,5 +15,11 @@
             [:button {:key id
                       :class (str "tool-btn" (when (= id current-tool) " active"))
                       :content (str icon " " name)
-                      :on-click (fn [_]
-                                  (rf/dispatch store/app-id [:tool/select-tool canvas-id id]))}]))))
+                      :on-click
+                      (fn [_]
+                        ;; 选择工具
+                        (rf/dispatch store/app-id
+                                     [:tool/select-tool canvas-id id])
+                        ;; 刷新UI
+                        (rf/dispatch store/app-id
+                                     [:tool/flush-overlay canvas-id nil frame]))}]))))
