@@ -1,0 +1,7 @@
+
+[{}
+ [".panel"
+  {:background-color :color-panel-bg
+   :padding "8px"
+   :border-color :color-panel-border
+   :border-width "0 0 0 1"}]]

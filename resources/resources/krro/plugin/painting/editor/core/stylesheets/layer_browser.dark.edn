@@ -1,0 +1,3 @@
+["classpath:/resources/krro/ui/styles/main.edn"
+ "classpath:/resources/krro/ui/styles/theme/dark.edn"
+ "layer_browser.edn"]

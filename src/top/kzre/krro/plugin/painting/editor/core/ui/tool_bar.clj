@@ -1,15 +1,11 @@
 (ns top.kzre.krro.plugin.painting.editor.core.ui.tool-bar
   (:require
-   [top.kzre.krro.core.reframe.core :as rf]
-   [top.kzre.krro.plugin.painting.core.edit.tools :as tools]
-   [top.kzre.krro.plugin.painting.core.state :as state]
-   [top.kzre.krro.plugin.painting.core.store :as store]))
-
+    [top.kzre.krro.plugin.painting.core.edit.tools :as tools]
+    [top.kzre.krro.plugin.painting.core.store :as store]))
 
 (defn tool-bar-vnode [canvas-id frame]
-  ;; TODO 替换为查询
-  (let [current-tool (state/current-tool canvas-id)]
-    (into [:tool-bar {:class "tool-bar"
+  (let [current-tool @(store/subscribe canvas-id :current-tool)]
+    (into [:tool-bar {:class ["tool-bar"]
                       :max-height 50}]
           (for [{:keys [id name icon]} (tools/tools)]
             [:button {:key id
@@ -18,8 +14,6 @@
                       :on-click
                       (fn [_]
                         ;; 选择工具
-                        (rf/dispatch store/app-id
-                                     [:tool/select-tool canvas-id id])
+                        (store/dispatch [:tool/select-tool canvas-id id])
                         ;; 刷新UI
-                        (rf/dispatch store/app-id
-                                     [:tool/flush-overlay canvas-id nil frame]))}]))))
+                        (store/dispatch [:tool/flush-overlay canvas-id nil frame]))}]))))

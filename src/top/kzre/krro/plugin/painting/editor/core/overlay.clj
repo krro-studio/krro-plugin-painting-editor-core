@@ -5,7 +5,7 @@
    描述项统一为 [tag opts]，坐标是屏幕像素，颜色可以是 RGB float-array 或 [r g b a] 向量。
    每个方法只读取自己关心的键，缺省的键取 overlay/palette 里的默认配色，
    因此同一批 overlay 之间不会互相污染样式（每次绘制都包在 save!/restore! 里）。
-
+     TODO Overlay规格由内部规定
      :cursor          工具光标   {:type :circle/:ring/:crosshair/:dot :x :y :radius :color :inner-color :stroke-width :gap}
      :circle          圆         {:x :y :radius :fill-color :stroke-color :stroke-width :stroke-dash :dash-offset}
      :rect            矩形       {:x :y :width :height} 或 {:bounds [x y w h]}，样式同上
@@ -43,7 +43,7 @@
    浅色内层保证在深色画布上可见——PS/CSP/SAI 的界面元素都是这个思路。"
   {:anchor          [0.13 0.13 0.13 1.0]
    :anchor-fill     [1.0 1.0 1.0 1.0]
-   :anchor-selected [1.0 1.0 1.0 1.0]
+   :anchor-selected [1.0 0.78 0.0 0.8]
    :anchor-active   [1.0 0.78 0.0 1.0]
    :anchor-hover    [0.35 0.65 1.0 0.85]
    :handle          [0.20 0.20 0.20 1.0]
@@ -319,11 +319,11 @@
                fill stroke (or stroke-width line-width)))))
 
 (defmethod draw-overlay! :handle
-  [[_ {:keys [x y hx hy dx dy state size line-color]}] gc]
+  [[_ {:keys [x y hx hy dx dy direction size line-color]}] gc]
   (with-state gc
     (let [tx (double (or hx (if (some? dx) (+ (double x) dx) x)))
           ty (double (or hy (if (some? dy) (+ (double y) dy) y)))
-          out? (not= (kw state :out) :in)]
+          out? (not= (kw direction :out) :in)]
       (graph/set-stroke-dash! gc [])
       (graph/set-stroke-color! gc (or line-color (:handle-line palette)))
       (graph/set-stroke-width! gc line-width)

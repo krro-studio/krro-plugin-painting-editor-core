@@ -12,3 +12,4 @@ krro-plugin-painting-editor-core.iml
 
 target/
 .nrepl-port
+resources/**/*.css

@@ -6,8 +6,8 @@
     [top.kzre.krro.plugin.painting.core.ops.layer-undo :as layer-undo]
     [top.kzre.krro.plugin.painting.core.project.canvas :as pc]
     [top.kzre.krro.plugin.painting.core.project.layer-meta :as pm]
-    [top.kzre.krro.plugin.painting.core.state :as state]
-    [top.kzre.krro.ui.core.spec.drag :as drag-spec]))
+    [top.kzre.krro.ui.core.spec.drag :as drag-spec]
+    [top.kzre.krro.plugin.painting.core.store :as store]))
 
 ;; ── 内部工具：递归展平图层 ──────────────────────────
 (defn- flatten-layers
@@ -30,8 +30,10 @@
         is-group? (= :group (:type layer))
         indent-str (apply str (repeat indent "  "))]
     [:block {:key layer-id                                    ;; 稳定 key 用于 diff 复用
-             :class "layer-row"
-             :stylesheet "classpath://stylesheets/main.edn"
+             ;; TODO 根据变量切换模式
+             :stylesheet
+             "classpath:/resources/krro/plugin/painting/editor/core/stylesheets/layer_browser.dark.edn"
+             :class ["layer-row"]
              :style {:padding-left (str (* indent 12) "px")}  ;; 字符串值
              ;; 拖拽源：传递图层 ID 字符串
              :drag-source (drag-spec/drag-source
@@ -69,9 +71,9 @@
        [:text {:content "▸" :style {:font-size "10" :fill "lightgray"}}])]))  ;; 字符串值
 
 ;; ── 图层面板（容器 + 列表 + 工具栏） ────────────────
-(defn layer-panel-vnode [canvas-id _f]
+(defn layer-panel-vnode [canvas-id frame]
   (let [layers      (pc/layers-by-id! canvas-id)
-        selected-id (state/current-layer-id canvas-id)
+        selected-id @(store/subscribe canvas-id :current-layer-id)
         flat        (reverse (flatten-layers layers))]
     [:block {:class "layer-browser" :direction :vertical}
      [:text {:class "layer-browser-title" :content "Layers"}]

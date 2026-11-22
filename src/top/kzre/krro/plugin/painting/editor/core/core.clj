@@ -4,10 +4,8 @@
    [top.kzre.krro.canvas.core.core]
    [top.kzre.krro.canvas.vector.core]
    [top.kzre.krro.core.core :as krro]
-   [top.kzre.krro.core.plugin :as plugin]
    [top.kzre.krro.plugin.painting.core.core]
-   [top.kzre.krro.plugin.painting.core.project.canvas :as pc]
-   [top.kzre.krro.plugin.painting.editor.core.mode :as mode]
+   [top.kzre.krro.plugin.painting.editor.core.mode.painting :as painting]
    [top.kzre.krro.plugin.painting.editor.core.mode.basic :as basic]
    [top.kzre.krro.plugin.painting.editor.core.mode.color-picker-hsv-rect :as color-picker-hsv-rect]
    [top.kzre.krro.plugin.painting.editor.core.mode.color-picker-wheel-hsv :as color-picker-wheel-hsv]
@@ -21,7 +19,7 @@
   {:name :krro.painting/editor-core
    :mount
    (fn []
-     (mode/mount)
+     (painting/mount)
      (basic/mount)
      (new-image/mount)
      (color-picker-wheel-hsv/mount)
