@@ -63,5 +63,6 @@
     {:l :krro.painting/log-layers
      :s :krro.painting.anchor/enter-adjust-width-modal
      :e :krro.painting.anchor/enter-extrude-anchor-modal
-     :x :krro.painting/delete-selected-anchors})
+     :x :krro.painting/delete-selected-anchors
+     [:C-g] :krro.painting/group-selected-layers})
 )

@@ -24,6 +24,7 @@
    ^long level                                              ;; 图层层级
    layer                                                    ;; 图层引用, 渲染图层特定信息时候取出它来
    children
+   ^boolean group?
    ])
 
 ;; ── 构建树结构（保留 LayerRowInfo，children 作为额外字段挂在上面）──
@@ -33,18 +34,20 @@
   ([layers level group]
    (mapv
      (fn [layer]
-       (let [info (map->LayerRowInfo
+       (let [group? (layer.group/group? layer)
+             info (map->LayerRowInfo
                     {:layer-id (:id layer)
                      :layer-name (project.layer/layer-name layer)
                      :layer layer
                      :level level
+                     :group? group?
                      :visible? (layer.core/visible? layer)
                      :group-visible? (layer.core/visible? group)
                      :locked? (project.layer/locked? layer)
                      :group-locked? (project.layer/locked? group)
                      :alpha-locked? (project.layer/alpha-locked? layer)
                      :group-alpha-locked? (project.layer/alpha-locked? group)})]
-         (if (layer.group/group? layer)
+         (if group?
            (let [children (build-layer-tree (:layers layer) (inc level) layer)]
              (assoc info :children children))
            info)))
@@ -135,18 +138,19 @@
 ;; ── 递归渲染树节点 ──────────────────────────────────
 (defn- render-layer-node
   [info canvas-id params]
-  (let [{:keys [layer-id children]} info]
-    (if children
+  (let [{:keys [layer-id children group?]} info]
+    (if group?
       ;; 组节点：标题行 + 嵌套 children
       [:block {:key layer-id
                :direction :vertical
-               :class ["layer-group"]}
+               :class ["layer-group"]
+               }
        (layer-row info canvas-id params)
        ;; 子图层缩进容器
-       [:block {:direction :vertical
-                :class ["layer-group-child"]
-                :style {:margin-left "12px"}}
-        (mapv #(render-layer-node % canvas-id params) children)]]
+       (into
+         [:block {:direction :vertical
+                  :class ["layer-group-child-list"]}]
+         (mapv #(render-layer-node % canvas-id params) children))]
       ;; 叶子节点
       (layer-row info canvas-id params))))
 
