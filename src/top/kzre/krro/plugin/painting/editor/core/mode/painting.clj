@@ -48,7 +48,7 @@
               ;; 左侧画布
               [:krro.painting/canvas {:krro.painting/canvas-id canvas-id}]
               ;; 右侧图层面板
-              (lb/layer-panel-vnode canvas-id frame)]]]
+              (lb/layer-browser canvas-id frame)]]]
            [:text :content "Invalid Canvas State."])
          ))}))
 

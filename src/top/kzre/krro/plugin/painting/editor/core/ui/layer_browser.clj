@@ -1,93 +1,171 @@
 (ns top.kzre.krro.plugin.painting.editor.core.ui.layer-browser
-  "图层面板：标题、图层列表（vnode 实现，支持拖拽排序）和工具栏。
-   所有样式值均为字符串，符合 spec.element 规范。"
+  "图层面板：标题、图层列表（递归树结构，支持拖拽排序）和工具栏。"
   (:require
-    [top.kzre.krro.canvas.core.layer.core :as layer-core]
-    [top.kzre.krro.plugin.painting.core.ops.layer-undo :as layer-undo]
-    [top.kzre.krro.plugin.painting.core.project.canvas :as pc]
-    [top.kzre.krro.plugin.painting.core.project.layer-meta :as pm]
-    [top.kzre.krro.ui.core.spec.drag :as drag-spec]
-    [top.kzre.krro.plugin.painting.core.store :as store]))
+   [taoensso.timbre :as log]
+   [top.kzre.krro.canvas.core.layer.core :as layer.core]
+   [top.kzre.krro.canvas.core.layer.group :as layer.group]
+   [top.kzre.krro.canvas.core.layer.path :as layer.path]
+   [top.kzre.krro.plugin.painting.core.ops.layer-undo :as layer-undo]
+   [top.kzre.krro.plugin.painting.core.project.canvas :as pc]
+   [top.kzre.krro.plugin.painting.core.project.layer :as project.layer]
+   [top.kzre.krro.plugin.painting.core.store :as store]
+   [top.kzre.krro.plugin.painting.editor.core.icon :as icon]
+   [top.kzre.krro.ui.core.spec.drag :as drag-spec]))
 
-;; ── 内部工具：递归展平图层 ──────────────────────────
-(defn- flatten-layers
-  ([layers] (flatten-layers layers [] 0))
-  ([layers parent-path indent]
-   (mapcat (fn [idx layer]
-             (let [current-path (conj parent-path idx)]
-               (cons {:layer layer :path current-path :indent indent}
-                     (when (= :group (:type layer))
-                       (flatten-layers (:layers layer) current-path (inc indent))))))
-           (range)
-           layers)))
+(defrecord LayerRowInfo
+  [layer-id                                                       ;; 图层id
+   layer-name                                                     ;; 图层名称
+   ^boolean visible?                                        ;; 图层可见性
+   ^boolean group-visible?                                 ;; 图层所在组可见性
+   ^boolean locked?                                         ;; 图层是否锁定
+   ^boolean group-locked?                                   ;; 图层所在组是否锁定
+   ^boolean alpha-locked?                                   ;; 图层透明度是否锁定
+   ^boolean group-alpha-locked?                             ;; 图层所在组的透明度是否锁定
+   ^long level                                              ;; 图层层级
+   layer                                                    ;; 图层引用, 渲染图层特定信息时候取出它来
+   children
+   ])
 
-;; ── 图层行 vnode ────────────────────────────────────
-(defn- layer-row-vnode [{:keys [layer path indent]} selected-id canvas-id]
-  (let [layer-id       (:id layer)
-        name      (or (:name layer) (str layer-id))
-        visible  (get layer :visible true)
-        locked   (:locked? (pm/layer-meta layer-id))
-        is-group? (= :group (:type layer))
-        indent-str (apply str (repeat indent "  "))]
-    [:block {:key layer-id                                    ;; 稳定 key 用于 diff 复用
-             ;; TODO 根据变量切换模式
-             :stylesheet
-             "classpath:/resources/krro/plugin/painting/editor/core/stylesheets/layer_browser.dark.edn"
+;; ── 构建树结构（保留 LayerRowInfo，children 作为额外字段挂在上面）──
+(defn- build-layer-tree
+  ([layers]
+   (build-layer-tree layers 0 nil))
+  ([layers level group]
+   (mapv
+     (fn [layer]
+       (let [info (map->LayerRowInfo
+                    {:layer-id (:id layer)
+                     :layer-name (project.layer/layer-name layer)
+                     :layer layer
+                     :level level
+                     :visible? (layer.core/visible? layer)
+                     :group-visible? (layer.core/visible? group)
+                     :locked? (project.layer/locked? layer)
+                     :group-locked? (project.layer/locked? group)
+                     :alpha-locked? (project.layer/alpha-locked? layer)
+                     :group-alpha-locked? (project.layer/alpha-locked? group)})]
+         (if (layer.group/group? layer)
+           (let [children (build-layer-tree (:layers layer) (inc level) layer)]
+             (assoc info :children children))
+           info)))
+     ;; 图层是栈, 显示方向是反向的
+     (reverse layers))))
+
+;; ── 图层行 vnode（只管自己，缩进交给父容器）──────────
+(defn- layer-row
+  [^LayerRowInfo info
+   current-layer-id canvas-id]
+  (let [{:keys [layer-id layer-name layer visible? locked?]} info]
+    [:block {:key layer-id
+             :direction :horizontal
+             :grow true
              :class ["layer-row"]
-             :style {:padding-left (str (* indent 12) "px")}  ;; 字符串值
-             ;; 拖拽源：传递图层 ID 字符串
-             :drag-source (drag-spec/drag-source
-                            (fn [_] (str layer-id))
-                            :modes [:move])
-             ;; 拖拽目标：接受移动并处理放置
-             :drag-target (drag-spec/drag-target
-                            (fn [node e] true)            ;; 总是接受
-                            (fn [node e]
-                              ;; 动态获取路径，不依赖节点用户数据
-                              (let [source-id (keyword (:data e))
-                                    target-id layer-id
-                                    layers (pc/layers-by-id! canvas-id)
-                                    source-path (layer-core/find-layer-path source-id layers)
-                                    target-path (layer-core/find-layer-path target-id layers)]
-                                (when (and source-path target-path (not= source-id target-id))
-                                  (layer-undo/move-layer-undo! canvas-id source-path target-path)))))
-             :direction :horizontal}
-     ;; 可见性复选框（仅非组图层显示）
-     (when-not is-group?
-       [:check-box {:checked visible
-                    :getter   (fn [db-map] (pc/visible-layer? canvas-id layer-id db-map))
-                    :setter   (fn [v] (layer-undo/set-layer-visibility! canvas-id layer-id v))}])
-     ;; 图层名称（点击选中）
-     [:text {:content  (str indent-str name)
-             :style    (if (= layer-id selected-id)
-                         {:fill "yellow" :font-weight "bold"}   ;; 字符串值
-                         {:fill "lightgray"})
-             :on-click [:krro.painting/select-layer layer-id]}]
-     ;; 锁定图标
-     (when locked
-       [:text {:content "🔒" :style {:font-size "10" :fill "gray"}}])  ;; 字符串值
-     ;; 组展开图标（占位）
-     (when is-group?
-       [:text {:content "▸" :style {:font-size "10" :fill "lightgray"}}])]))  ;; 字符串值
+             ;; 拖拽源
+             :on-drag
+             (drag-spec/drag-source
+               (fn [_]
+                 (log/info "get drag content")
+                 (str layer-id))
+               :modes [:move])
+             ;; 拖拽目标
+             :on-drop (drag-spec/drag-target
+                        (fn [node e] true)
+                        (fn [node e]
+                          (let [source-id (keyword (:data e))
+                                target-id layer-id
+                                layers (pc/layers-by-id! canvas-id)
+                                source-path (layer.path/get-path layers source-id)
+                                target-path (layer.path/get-path layers target-id)]
+                            (when (and source-path target-path (not= source-id target-id))
+                              (layer-undo/move-layer-undo! canvas-id source-path target-path)))))
+             }
+     ;; 可见性复选框
+     [:image {:src (icon/light-dark [:eye visible?])
+              :width 20
+              :on-click
+              (fn [_]
+                (log/info "on click")
+                (store/dispatch
+                  [:oplog/toggle-layer-visibility
+                   canvas-id layer-id
+                   {:undo true}]))}]
 
-;; ── 图层面板（容器 + 列表 + 工具栏） ────────────────
-(defn layer-panel-vnode [canvas-id frame]
-  (let [layers      (pc/layers-by-id! canvas-id)
+     ;; 组展开/折叠图标
+     (when (layer.group/group? layer)
+       [:image {:src "classpath:/resources/krro/plugin/painting/editor/core/icons/caret-right.light.png"
+                :width 20
+                :on-click
+                (fn [_]
+                  (log/info "expand group")
+                  )}])
+     ;; 图层名称
+     [:text {:content layer-name
+             :style (if (= layer-id current-layer-id)
+                      {:fill "yellow"
+                       :font-weight "bold"}
+                      {:fill "lightgray"})
+             :grow true
+             :on-click
+             (fn [_]
+               (store/dispatch [:krro.painting/select-layer canvas-id layer-id]))}]
+     [:block {:grow true
+              :style {:min-width "8px"}}]
+     ;; 锁定图标
+     [:image {:src "classpath:/resources/krro/plugin/painting/editor/core/icons/lock.light.png"
+              :width 20
+              :on-click
+              (fn [_]
+                (log/info "toggle layer lock")
+                )}]]))
+
+;; ── 递归渲染树节点 ──────────────────────────────────
+(defn- render-layer-node
+  [info
+   current-layer-id canvas-id]
+  (let [{:keys [layer-id children]} info]
+    (if children
+      ;; 组节点：标题行 + 嵌套 children
+      [:block {:key layer-id
+               :direction :vertical
+               :class ["layer-group"]}
+       (layer-row info current-layer-id canvas-id)
+       ;; 子图层缩进容器
+       [:block {:direction :vertical
+                :class ["layer-group-children"]
+                :style {:margin-left "12px"}}
+        (mapv #(render-layer-node % current-layer-id canvas-id) children)]]
+      ;; 叶子节点
+      (layer-row info current-layer-id canvas-id))))
+
+;; ── 图层面板 ────────────────────────────────────────
+(defn layer-browser [canvas-id frame]
+  (let [layers      @(store/subscribe canvas-id :layers)
         selected-id @(store/subscribe canvas-id :current-layer-id)
-        flat        (reverse (flatten-layers layers))]
-    [:block {:class "layer-browser" :direction :vertical}
-     [:text {:class "layer-browser-title" :content "Layers"}]
+        tree        (build-layer-tree layers)]
+    [:block
+     {:direction :vertical
+      :stylesheet
+      "classpath:/resources/krro/plugin/painting/editor/core/stylesheets/layer_browser.dark.edn"
+      :class ["layer-browser"]}
+     [:text {:class "layer-browser-title"
+             :content "Layers"}]
      ;; 图层列表
-     [:scroll {}
-      (into [:block {:class "layer-list" :direction :vertical}]
-            (mapv (fn [info] (layer-row-vnode info selected-id canvas-id)) flat))]
+     [:scroll {:class ["layer-list"]}
+      (into [:block
+             {:direction :vertical
+              :grow true}]
+            (mapv #(render-layer-node % selected-id canvas-id) tree))]
      ;; 工具栏
-     [:block {:class "layer-toolbar" :direction :horizontal}
-      ;; 使用自定义弹出组件代替原来的“＋”按钮
+     [:block {:class "layer-toolbar"
+              :direction :horizontal
+              :spacing "4px"}
       [:krro.painting/add-layer-popup {:krro.painting/canvas-id canvas-id}]
-      [:button {:class "layer-toolbar-button" :content "×"
-                :on-click (fn [_]
-                            (layer-undo/remove-selected-layer-undo! canvas-id))}]
-      [:button {:class "layer-toolbar-button" :content "▣"
-                :on-click (fn [_]
-                            (layer-undo/duplicate-selected-layer-undo! canvas-id))}]]]))
+      [:image {:src "classpath:/resources/krro/plugin/painting/editor/core/icons/x.light.png"
+               :width 20
+               :on-click
+               (fn [_]
+                 (log/info "on-click"))}]
+      [:button {:class "layer-toolbar-button" :content "dup"
+                :on-click
+                (fn [_]
+                  (layer-undo/duplicate-selected-layer-undo! canvas-id))}]]]))

@@ -1,55 +1,52 @@
-;; 基本样式文件不导入任何抽象
-[
- {}
- [".btn"
-  {:font-size "14px"
-   :padding "8 16"}]
+;; component/layer-browser.edn
 
- [".btn-primary"
-  {:background-color "#0078d4"
-   :text-fill "white"}]
+[{}
 
  [".layer-browser"
-  {:background-color :color-panel-bg
+  {:background-color :kr/body-bg
    :padding "8px"
-   :border-color :color-panel-border
-   :border-width "0 0 0 1"}]
+   :border-color :kr/border-color
+   :border-width "0 0 0 1px"}]
 
  [".layer-browser-title"
-  {:text-fill :color-fg
-   :font-weight "bold"
-   :font-size "13px"
-   :padding "0 0 5 0"}]
+  {:text-fill :kr/secondary-color
+   :font-weight :font-weight-bold
+   :font-size :font-size-sm
+   :padding "0 0 5px 0"}]
 
  [".layer-list"
   {:spacing "2px"}]
 
  [".layer-row"
-  {:padding "4px 6px"
+  {:text-fill :kr/secondary-color
+   :padding "4px 6px"
    :background-color "transparent"
    :border-color "transparent"
    :alignment "center-left"
    :spacing "4px"}
   ["&:hover"
-   {:background-color :color-bg-hover}]]
+   {:background-color :gray-100
+    :text-fill :kr/body-color}]]
 
  [".layer-row-selected"
-  {:background-color :color-bg-selected}]
+  {:background-color :gray-100}]
 
  [".layer-visibility-checkbox"
   {:scale-x "0.8"
    :scale-y "0.8"}]
 
  [".layer-name"
-  {:text-fill :color-fg
-   :font-size "12px"}]
+  {:text-fill :kr/body-color
+   :font-size :font-size-xs}
+  ["&:hover"
+   {:text-fill :kr/secondary-color}]]
 
  [".layer-name-selected"
-  {:text-fill :color-accent
-   :font-weight "bold"}]
+  {:text-fill :kr/primary-base
+   :font-weight :font-weight-bold}]
 
  [".layer-lock-icon"
-  {:text-fill :color-fg-muted
+  {:text-fill :kr/secondary-color
    :font-size "10px"}]
 
  [".layer-button"
@@ -58,19 +55,19 @@
    :min-height "20px"
    :padding "2px"
    :background-color "transparent"
-   :text-fill :color-fg-muted}
+   :text-fill :kr/secondary-color}
   ["&:hover"
-   {:background-color :color-bg-hover}]]
+   {:background-color :gray-100}]]
 
  [".layer-toolbar"
   {:padding "5px 0 0 0"
    :spacing "4px"}]
 
  [".layer-toolbar-button"
-  {:font-size "12px"
+  {:font-size :font-size-sm
    :min-width "24px"
    :min-height "24px"
    :background-color "transparent"
-   :text-fill :color-toolbar-fg}
+   :text-fill :kr/secondary-color}
   ["&:hover"
-   {:background-color :color-bg-hover}]]]
+   {:background-color :gray-100}]]]
