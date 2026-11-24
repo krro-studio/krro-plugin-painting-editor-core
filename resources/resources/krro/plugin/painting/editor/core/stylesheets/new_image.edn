@@ -1,7 +1,7 @@
 ;; new-image.edn
 [{}
  [".panel"
-  {:background-color :kr/body-bg
+  {:background-color :kr/surface
    :padding "8px"
    :border-color :kr/border-color
    :border-width "0 0 0 1px"}]]

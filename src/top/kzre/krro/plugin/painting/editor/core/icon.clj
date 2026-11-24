@@ -11,7 +11,11 @@
    [:light :eye true]
    "classpath:/resources/krro/plugin/painting/editor/core/icons/eye.light.png"
    [:light :eye false]
-   "classpath:/resources/krro/plugin/painting/editor/core/icons/eye-off.light.png"})
+   "classpath:/resources/krro/plugin/painting/editor/core/icons/eye-off.light.png"
+   [:light :lock true]
+   "classpath:/resources/krro/plugin/painting/editor/core/icons/lock.light.png"
+   [:light :lock false]
+   "classpath:/resources/krro/plugin/painting/editor/core/icons/lock-open.light.png"})
 
 (defn- url* [path]
   (router/resolve icon-router path))

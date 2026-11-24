@@ -53,9 +53,14 @@
 
 ;; ── 图层行 vnode（只管自己，缩进交给父容器）──────────
 (defn- layer-row
-  [^LayerRowInfo info
-   current-layer-id canvas-id]
-  (let [{:keys [layer-id layer-name layer visible? locked?]} info]
+  "结构划分为
+  row {<left> [name] <flags>}"
+  [^LayerRowInfo info canvas-id
+   {:keys [current-layer-id selected-layer-ids]
+    :as _params}]
+  (let [{:keys [layer-id layer-name layer visible? locked?]} info
+        current? (= layer-id current-layer-id)
+        selected? (contains? selected-layer-ids layer-id)]
     [:block {:key layer-id
              :direction :horizontal
              :grow true
@@ -79,7 +84,7 @@
                             (when (and source-path target-path (not= source-id target-id))
                               (layer-undo/move-layer-undo! canvas-id source-path target-path)))))
              }
-     ;; 可见性复选框
+     ;; 可见性
      [:image {:src (icon/light-dark [:eye visible?])
               :width 20
               :on-click
@@ -89,7 +94,6 @@
                   [:oplog/toggle-layer-visibility
                    canvas-id layer-id
                    {:undo true}]))}]
-
      ;; 组展开/折叠图标
      (when (layer.group/group? layer)
        [:image {:src "classpath:/resources/krro/plugin/painting/editor/core/icons/caret-right.light.png"
@@ -98,49 +102,62 @@
                 (fn [_]
                   (log/info "expand group")
                   )}])
-     ;; 图层名称
-     [:text {:content layer-name
-             :style (if (= layer-id current-layer-id)
-                      {:fill "yellow"
-                       :font-weight "bold"}
-                      {:fill "lightgray"})
-             :grow true
-             :on-click
-             (fn [_]
-               (store/dispatch [:krro.painting/select-layer canvas-id layer-id]))}]
-     [:block {:grow true
-              :style {:min-width "8px"}}]
-     ;; 锁定图标
-     [:image {:src "classpath:/resources/krro/plugin/painting/editor/core/icons/lock.light.png"
+     ;; 名称区域
+     [:block {:direction :horizontal
+              :grow true
+              :class
+              (cond
+                selected?
+                ["layer-name-box" "layer-name-box-selected"]
+                :else ["layer-name-box"])
+              :on-click
+              (fn [{:keys [shift?]}]
+                (if shift?
+                  (store/dispatch [:select-layer-multi canvas-id layer-id])
+                  (store/dispatch [:select-layer canvas-id layer-id])))}
+      ;; 图层名称
+      [:text {:content layer-name
+              :class ["layer-name-text"]}]
+      ;; 挤占右侧位置
+      [:block {:grow true :style {:min-width "8px"}}]]
+     ;; 右侧面板
+     ;; 锁定
+     [:image {:src (icon/light-dark [:lock locked?])
               :width 20
               :on-click
               (fn [_]
                 (log/info "toggle layer lock")
-                )}]]))
+                (store/dispatch
+                  [:oplog/toggle-layer-lock
+                   canvas-id layer-id
+                   {:undo true}]))}]]))
 
 ;; ── 递归渲染树节点 ──────────────────────────────────
 (defn- render-layer-node
-  [info
-   current-layer-id canvas-id]
+  [info canvas-id params]
   (let [{:keys [layer-id children]} info]
     (if children
       ;; 组节点：标题行 + 嵌套 children
       [:block {:key layer-id
                :direction :vertical
                :class ["layer-group"]}
-       (layer-row info current-layer-id canvas-id)
+       (layer-row info canvas-id params)
        ;; 子图层缩进容器
        [:block {:direction :vertical
-                :class ["layer-group-children"]
+                :class ["layer-group-child"]
                 :style {:margin-left "12px"}}
-        (mapv #(render-layer-node % current-layer-id canvas-id) children)]]
+        (mapv #(render-layer-node % canvas-id params) children)]]
       ;; 叶子节点
-      (layer-row info current-layer-id canvas-id))))
+      (layer-row info canvas-id params))))
 
 ;; ── 图层面板 ────────────────────────────────────────
 (defn layer-browser [canvas-id frame]
   (let [layers      @(store/subscribe canvas-id :layers)
-        selected-id @(store/subscribe canvas-id :current-layer-id)
+        current-layer-id @(store/subscribe canvas-id :current-layer-id)
+        selected-layer-ids @(store/subscribe canvas-id :selected-layer-ids)
+        params
+        {:current-layer-id current-layer-id
+         :selected-layer-ids selected-layer-ids}
         tree        (build-layer-tree layers)]
     [:block
      {:direction :vertical
@@ -154,7 +171,9 @@
       (into [:block
              {:direction :vertical
               :grow true}]
-            (mapv #(render-layer-node % selected-id canvas-id) tree))]
+            (mapv #(render-layer-node %
+                                      canvas-id
+                                      params) tree))]
      ;; 工具栏
      [:block {:class "layer-toolbar"
               :direction :horizontal

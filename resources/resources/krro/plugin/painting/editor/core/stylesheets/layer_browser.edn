@@ -1,10 +1,11 @@
 ;; component/layer-browser.edn
-
+;; 不带 -text 的，就是容器，只标注可继承样式.
 [{}
 
  [".layer-browser"
-  {:background-color :kr/body-bg
-   :padding "8px"
+  {:background-color :kr/surface
+   :padding :p2
+   :spacing :p2
    :border-color :kr/border-color
    :border-width "0 0 0 1px"}]
 
@@ -15,59 +16,33 @@
    :padding "0 0 5px 0"}]
 
  [".layer-list"
-  {:spacing "2px"}]
+  {:spacing "2px"
+   :padding :p1
+   :background-color :kr/secondary-surface
+   :background-radius :radius-lg}]
 
- [".layer-row"
-  {:text-fill :kr/secondary-color
-   :padding "4px 6px"
+
+ ;; 基础 name-box 样式
+ [".layer-name-box"
+  {:padding "4px 6px"
    :background-color "transparent"
    :border-color "transparent"
    :alignment "center-left"
-   :spacing "4px"}
+   :spacing :p1}
+  [".layer-name-text"
+   {:text-fill :kr/secondary-color}]
+
+  ;; hover 需要强调，背景稍微变化即可
   ["&:hover"
-   {:background-color :gray-100
-    :text-fill :kr/body-color}]]
+   {:background-color :kr/tertiary-surface}
+   [".layer-name-text"
+    {:text-fill :kr/emphasis-color}]]]
 
- [".layer-row-selected"
-  {:background-color :gray-100}]
-
- [".layer-visibility-checkbox"
-  {:scale-x "0.8"
-   :scale-y "0.8"}]
-
- [".layer-name"
-  {:text-fill :kr/body-color
-   :font-size :font-size-xs}
+ ;; 选择时候背景变为主题色
+ [".layer-name-box-selected"
+  {:background-color :kr/primary-bg-subtle}
+  ;; 覆盖，使得hover 时候背景色保持为主题色
   ["&:hover"
-   {:text-fill :kr/secondary-color}]]
+   {:background-color :kr/primary-bg-subtle}]]
 
- [".layer-name-selected"
-  {:text-fill :kr/primary-base
-   :font-weight :font-weight-bold}]
-
- [".layer-lock-icon"
-  {:text-fill :kr/secondary-color
-   :font-size "10px"}]
-
- [".layer-button"
-  {:font-size "10px"
-   :min-width "20px"
-   :min-height "20px"
-   :padding "2px"
-   :background-color "transparent"
-   :text-fill :kr/secondary-color}
-  ["&:hover"
-   {:background-color :gray-100}]]
-
- [".layer-toolbar"
-  {:padding "5px 0 0 0"
-   :spacing "4px"}]
-
- [".layer-toolbar-button"
-  {:font-size :font-size-sm
-   :min-width "24px"
-   :min-height "24px"
-   :background-color "transparent"
-   :text-fill :kr/secondary-color}
-  ["&:hover"
-   {:background-color :gray-100}]]]
+ ]
